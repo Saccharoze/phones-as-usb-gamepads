@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Two linked stones. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#4F8EF7" android:pathData="M42,54m-14,0a14,12 0,1 1,28 0a14,12 0,1 1,-28 0" />
+    <path android:fillColor="#F2784B" android:pathData="M66,54m-14,0a14,12 0,1 1,28 0a14,12 0,1 1,-28 0" />
+    <path android:fillColor="#E8E8EC" android:pathData="M49,52h10v4h-10z" />
+</vector>
