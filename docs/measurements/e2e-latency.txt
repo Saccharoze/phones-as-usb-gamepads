@@ -1,0 +1,7 @@
+# dev/e2e_latency.py, run from the Linux PC the board is plugged into:
+#   sudo python3 dev/e2e_latency.py 10.55.0.1 /dev/input/event4 200
+# Board: Radxa ZERO 3W, Armbian 26.8.1 trixie, kernel 6.1.115-vendor-rk35xx, stonesd 0.1.0 from this repo.
+# Link: the USB network link (WITH_ECM=1). /dev/input/event4 is pad 1 on the PC.
+# PC: Linux 6.17, generic HID driver.
+samples 200/200 lost 0  e2e ms: min 1.53 p50 2.44 p95 2.58 max 2.68
+fail-safe: press seen after 2.1 ms, released 302 ms after the press with no packets

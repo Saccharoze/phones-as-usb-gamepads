@@ -1,0 +1,13 @@
+# Website card: read by the website at build time. Keep it short.
+slug: phones-as-usb-gamepads
+section: pcb          # website section: books | pcb | phone | webcam | analyzer
+status: active        # active | paused | done
+tags: [usb-gadget, hid, gamepad, android, rust, kotlin, radxa, linux]
+repo: ""              # https://github.com/<user>/phones-as-usb-gamepads (filled when the repo exists)
+image: docs/img/board.jpg
+fr:
+  title: "Des téléphones Android en manettes USB"
+  summary: "Une carte Radxa ZERO 3W branchée en USB se présente au PC comme deux manettes HID standard, et deux téléphones Android les pilotent en Wi-Fi. Rien à installer sur le PC."
+en:
+  title: "Phones as USB gamepads"
+  summary: "A Radxa ZERO 3W board on the PC's USB port shows up as two standard HID gamepads, and two Android phones drive them over Wi-Fi. Nothing to install on the PC."
