@@ -1,0 +1,15 @@
+[package]
+name = "proto"
+description = "Sending Stones protocol: PadState, HID descriptor, report encoding"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror = "2"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json = "1"

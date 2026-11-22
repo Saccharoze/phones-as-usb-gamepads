@@ -1,0 +1,16 @@
+# /etc/sending-stones/config.toml. Every key is optional; these are the defaults.
+
+port = 40400
+pad_count = 2
+
+# 4-digit PIN asked for every new claim and takeover. Set one when other
+# people share the Wi-Fi. Leave unset for no PIN.
+# pin = 1234
+
+# Defaults to /dev/hidg0 .. /dev/hidg<pad_count-1>.
+# hid_paths = ["/dev/hidg0", "/dev/hidg1"]
+
+failsafe_ms = 300
+reservation_s = 120
+mdns = true
+mock = false

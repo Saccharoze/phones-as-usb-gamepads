@@ -1,0 +1,17 @@
+[Unit]
+Description=Sending Stones USB gadget (HID gamepads on the OTG port)
+Documentation=https://github.com/Saccharoze/phones-as-usb-gamepads
+# The board image binds its own bringup gadget at boot; take over after it.
+After=usb-gadget-ecm.service sys-kernel-config.mount
+Wants=sys-kernel-config.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# TAKEOVER / WITH_ECM live here, so play and development differ by one file.
+EnvironmentFile=-/etc/sending-stones/gadget.env
+ExecStart=/usr/local/lib/sending-stones/setup.sh up
+ExecStop=/usr/local/lib/sending-stones/setup.sh down
+
+[Install]
+WantedBy=multi-user.target

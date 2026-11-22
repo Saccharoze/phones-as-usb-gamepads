@@ -1,0 +1,389 @@
+{
+  "about": "Golden vectors for the Sending Stones protocol. Tokens are 16 hex digits (u64 does not fit a JSON double). Hex is lowercase, no separators. Checked by proto (Rust) and the Android tests (Kotlin).",
+  "version": 1,
+  "reports": [
+    {
+      "name": "neutral",
+      "state": {
+        "buttons": 0,
+        "hat": 8,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "00000800000000000000000000"
+    },
+    {
+      "name": "a_pressed",
+      "state": {
+        "buttons": 1,
+        "hat": 8,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "01000800000000000000000000"
+    },
+    {
+      "name": "all_v1_buttons",
+      "state": {
+        "buttons": 31963,
+        "hat": 8,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "db7c0800000000000000000000"
+    },
+    {
+      "name": "guide",
+      "state": {
+        "buttons": 4096,
+        "hat": 8,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "00100800000000000000000000"
+    },
+    {
+      "name": "dpad_up",
+      "state": {
+        "buttons": 0,
+        "hat": 0,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "00000000000000000000000000"
+    },
+    {
+      "name": "dpad_up_left",
+      "state": {
+        "buttons": 0,
+        "hat": 7,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "00000700000000000000000000"
+    },
+    {
+      "name": "left_stick_full_up_right",
+      "state": {
+        "buttons": 0,
+        "hat": 8,
+        "left_x": 32767,
+        "left_y": -32767,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "000008ff7f0180000000000000"
+    },
+    {
+      "name": "right_stick_full_down_left",
+      "state": {
+        "buttons": 0,
+        "hat": 8,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": -32767,
+        "right_y": 32767,
+        "left_trigger": 0,
+        "right_trigger": 0
+      },
+      "hex": "000008000000000180ff7f0000"
+    },
+    {
+      "name": "triggers_full",
+      "state": {
+        "buttons": 0,
+        "hat": 8,
+        "left_x": 0,
+        "left_y": 0,
+        "right_x": 0,
+        "right_y": 0,
+        "left_trigger": 255,
+        "right_trigger": 255
+      },
+      "hex": "0000080000000000000000ffff"
+    },
+    {
+      "name": "mixed",
+      "state": {
+        "buttons": 18432,
+        "hat": 5,
+        "left_x": 32767,
+        "left_y": -32767,
+        "right_x": 4660,
+        "right_y": -2,
+        "left_trigger": 255,
+        "right_trigger": 7
+      },
+      "hex": "004805ff7f01803412feffff07"
+    }
+  ],
+  "frames": [
+    {
+      "name": "hello_new_no_pin",
+      "frame": {
+        "type": "hello",
+        "slot": 1,
+        "token": "0000000000000000",
+        "pin": null
+      },
+      "hex": "53530101010000000000000000ffff"
+    },
+    {
+      "name": "hello_resume_with_pin",
+      "frame": {
+        "type": "hello",
+        "slot": 2,
+        "token": "0123456789abcdef",
+        "pin": 1234
+      },
+      "hex": "5353010102efcdab8967452301d204"
+    },
+    {
+      "name": "hello_pin_zero",
+      "frame": {
+        "type": "hello",
+        "slot": 1,
+        "token": "0000000000000000",
+        "pin": 0
+      },
+      "hex": "535301010100000000000000000000"
+    },
+    {
+      "name": "welcome",
+      "frame": {
+        "type": "welcome",
+        "slot": 2,
+        "token": "0123456789abcdef"
+      },
+      "hex": "5353010202efcdab8967452301"
+    },
+    {
+      "name": "error_slot_taken",
+      "frame": {
+        "type": "error",
+        "code": 1
+      },
+      "hex": "5353010301"
+    },
+    {
+      "name": "error_bad_pin",
+      "frame": {
+        "type": "error",
+        "code": 2
+      },
+      "hex": "5353010302"
+    },
+    {
+      "name": "error_no_such_slot",
+      "frame": {
+        "type": "error",
+        "code": 3
+      },
+      "hex": "5353010303"
+    },
+    {
+      "name": "error_bad_frame",
+      "frame": {
+        "type": "error",
+        "code": 4
+      },
+      "hex": "5353010304"
+    },
+    {
+      "name": "error_unknown_token",
+      "frame": {
+        "type": "error",
+        "code": 5
+      },
+      "hex": "5353010305"
+    },
+    {
+      "name": "state_neutral",
+      "frame": {
+        "type": "state",
+        "token": "0123456789abcdef",
+        "seq": 0,
+        "state": {
+          "buttons": 0,
+          "hat": 8,
+          "left_x": 0,
+          "left_y": 0,
+          "right_x": 0,
+          "right_y": 0,
+          "left_trigger": 0,
+          "right_trigger": 0
+        }
+      },
+      "hex": "53530110efcdab8967452301000000000800000000000000000000"
+    },
+    {
+      "name": "state_a_rb_dpad_right",
+      "frame": {
+        "type": "state",
+        "token": "0123456789abcdef",
+        "seq": 65535,
+        "state": {
+          "buttons": 129,
+          "hat": 2,
+          "left_x": -1000,
+          "left_y": 2000,
+          "right_x": 0,
+          "right_y": 0,
+          "left_trigger": 0,
+          "right_trigger": 255
+        }
+      },
+      "hex": "53530110efcdab8967452301ffff81000218fcd0070000000000ff"
+    },
+    {
+      "name": "heartbeat",
+      "frame": {
+        "type": "heartbeat",
+        "token": "0123456789abcdef",
+        "seq": 513
+      },
+      "hex": "53530111efcdab89674523010102"
+    },
+    {
+      "name": "ping",
+      "frame": {
+        "type": "ping",
+        "token": "0123456789abcdef",
+        "id": 7,
+        "phone_time_ms": 4000000000
+      },
+      "hex": "53530120efcdab89674523010700000000286bee"
+    },
+    {
+      "name": "pong",
+      "frame": {
+        "type": "pong",
+        "token": "0123456789abcdef",
+        "id": 7,
+        "phone_time_ms": 4000000000
+      },
+      "hex": "53530121efcdab89674523010700000000286bee"
+    },
+    {
+      "name": "stats",
+      "frame": {
+        "type": "stats",
+        "token": "0123456789abcdef",
+        "rtt_p50_ms": 12,
+        "rtt_p95_ms": 48
+      },
+      "hex": "53530122efcdab89674523010c003000"
+    },
+    {
+      "name": "release",
+      "frame": {
+        "type": "release",
+        "token": "0123456789abcdef"
+      },
+      "hex": "53530130efcdab8967452301"
+    },
+    {
+      "name": "status_req",
+      "frame": {
+        "type": "status_req"
+      },
+      "hex": "53530140"
+    },
+    {
+      "name": "status",
+      "frame": {
+        "type": "status",
+        "text": "{\"pads\":2}"
+      },
+      "hex": "535301417b2270616473223a327d"
+    }
+  ],
+  "invalid_frames": [
+    {
+      "name": "too_short",
+      "hex": "535301",
+      "error": "too_short"
+    },
+    {
+      "name": "bad_magic",
+      "hex": "53580140",
+      "error": "bad_magic"
+    },
+    {
+      "name": "bad_version",
+      "hex": "53530240",
+      "error": "bad_version"
+    },
+    {
+      "name": "unknown_type",
+      "hex": "53530199",
+      "error": "unknown_type"
+    },
+    {
+      "name": "state_too_short",
+      "hex": "53530110efcdab89674523010100000008000000000000000000",
+      "error": "bad_length"
+    },
+    {
+      "name": "release_too_long",
+      "hex": "53530130efcdab896745230100",
+      "error": "bad_length"
+    },
+    {
+      "name": "hello_pin_10000",
+      "hex": "535301010100000000000000001027",
+      "error": "bad_pin"
+    },
+    {
+      "name": "error_code_0",
+      "hex": "5353010300",
+      "error": "bad_error_code"
+    },
+    {
+      "name": "state_hat_9",
+      "hex": "53530110efcdab8967452301010000000900000000000000000000",
+      "error": "bad_state"
+    },
+    {
+      "name": "state_reserved_button",
+      "hex": "53530110efcdab8967452301010000800800000000000000000000",
+      "error": "bad_state"
+    },
+    {
+      "name": "state_axis_min",
+      "hex": "53530110efcdab8967452301010000000800800000000000000000",
+      "error": "bad_state"
+    },
+    {
+      "name": "status_not_utf8",
+      "hex": "53530141fffe",
+      "error": "bad_status_text"
+    }
+  ]
+}

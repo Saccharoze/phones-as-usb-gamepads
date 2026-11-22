@@ -1,0 +1,2 @@
+# Lets the stonesd user write the HID gadget pads without running as root.
+KERNEL=="hidg[0-9]*", SUBSYSTEM=="hidg", GROUP="sending-stones", MODE="0660"

@@ -1,0 +1,22 @@
+[Unit]
+Description=Sending Stones daemon (phones over UDP to HID pads)
+Documentation=https://github.com/Saccharoze/phones-as-usb-gamepads
+Requires=sending-stones-gadget.service
+After=sending-stones-gadget.service network.target
+
+[Service]
+User=sending-stones
+Group=sending-stones
+ExecStart=/usr/local/bin/stonesd --config /etc/sending-stones/config.toml
+Restart=always
+RestartSec=1
+# The daemon only needs UDP and /dev/hidg*; keep everything else away.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+DeviceAllow=char-hidg rw
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target
