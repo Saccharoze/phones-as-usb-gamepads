@@ -1,0 +1,16 @@
+[package]
+name = "xtask"
+description = "Build, deploy and log helpers for the board"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Its own workspace: it builds board/ from the outside.
+[workspace]
+
+[dependencies]
+anyhow = "1"
+
+[lints.rust]
+unsafe_code = "forbid"

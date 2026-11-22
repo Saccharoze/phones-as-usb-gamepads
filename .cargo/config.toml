@@ -1,0 +1,3 @@
+[alias]
+# Run from the repo root.
+xtask = "run --quiet --manifest-path dev/xtask/Cargo.toml --"
