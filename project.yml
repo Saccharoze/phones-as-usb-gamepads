@@ -7,7 +7,7 @@ repo: "https://github.com/Saccharoze/phones-as-usb-gamepads"
 image: docs/img/board.jpg
 fr:
   title: "Des téléphones Android en manettes USB"
-  summary: "Une carte Radxa ZERO 3W branchée en USB se présente au PC comme quatre manettes HID standard, et jusqu'à quatre téléphones Android les pilotent en Wi-Fi. Rien à installer sur le PC."
+  summary: "Une carte Radxa ZERO 3W branchée en USB se présente au PC comme quatre manettes HID standard, pilotées en Wi-Fi par jusqu'à quatre téléphones (app Android ou page web). Rien à installer sur le PC."
 en:
   title: "Phones as USB gamepads"
-  summary: "A Radxa ZERO 3W board on the PC's USB port shows up as four standard HID gamepads, and up to four Android phones drive them over Wi-Fi. Nothing to install on the PC."
+  summary: "A Radxa ZERO 3W board on the PC's USB port shows up as four standard HID gamepads, and up to four phones drive them over Wi-Fi, from an Android app or a web page. Nothing to install on the PC."

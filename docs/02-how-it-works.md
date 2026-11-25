@@ -1,7 +1,7 @@
 # How it works
 
-A touch on the phone becomes a pad state. The app sends it over UDP to `stonesd` on the board, which writes it
-as a 13-byte HID report to its pad's `/dev/hidgN`. The board's USB gadget hands that report to the PC the
+A touch on the phone becomes a pad state. The app sends it over UDP to `stonesd` on the board (the browser pad
+sends the same frames over a WebSocket), which writes it as a 13-byte HID report to its pad's `/dev/hidgN`. The board's USB gadget hands that report to the PC the
 next time the PC polls the pad.
 
 ```mermaid
@@ -96,14 +96,14 @@ rate-limited per sender.
 
 STATUS holds `version`, `pad_count`, `pin_required`, `uptime_s`, `bad_frames`, `stale_frames`, and one entry per
 slot in `slots`: `slot`, `state` (`free`, `active` or `reserved`), `reports_written`, `write_errors`,
-`receive_to_write_us` (p50 and p95), plus `phone`, `silent_ms`, `rtt_p50_ms` and `rtt_p95_ms` when a phone holds
-it.
+`receive_to_write_us` (p50 and p95), plus `phone` (its IP address and port), `via` (`udp` or `web`),
+`silent_ms`, `rtt_p50_ms` and `rtt_p95_ms` when a phone holds it.
 
 The Rust crate `board/proto` is the reference. The app's `proto` package
-(`phone/app/src/main/java/io/github/sendingstones/proto/`) is a separate Kotlin implementation. Both are tested
-against `board/proto/testdata/vectors.json`, which a third implementation, `board/proto/testdata/gen_vectors.py`,
-writes from the tables on this page. A change to the protocol changes the vectors and both test suites
-together.
+(`phone/app/src/main/java/io/github/sendingstones/proto/`) is a separate Kotlin implementation, and the browser
+pad's `board/daemon/web/proto.mjs` a JavaScript one. All three are tested against
+`board/proto/testdata/vectors.json`, which a fourth implementation, `board/proto/testdata/gen_vectors.py`, writes
+from the tables on this page. A change to the protocol changes the vectors and the three test suites together.
 
 ## Sessions and slots
 
@@ -132,14 +132,16 @@ together.
 
 ## Inside stonesd
 
-One task owns the socket, the slots and the fail-safe timer, so the session state needs no locks. Each pad
-has a writer task fed through a `tokio::sync::watch` channel, which keeps only the newest state. The writes to
-`/dev/hidgN` are non-blocking: when the PC isn't polling, the writer waits for the device without holding up the
-rest of the daemon. Intermediate states are skipped, never queued, so the pad doesn't fall behind the phone. The
-PC can still get one older report first, the one already handed to the gadget.
+One task owns the UDP socket, the slots and the fail-safe timer, so the session state needs no locks. Each
+browser's WebSocket has its own task, which forwards frames to it and carries its replies back. Each pad has a writer task fed through a `tokio::sync::watch` channel, which keeps
+only the newest state. The writes to `/dev/hidgN` are non-blocking: when the PC isn't polling, the writer waits
+for the device without holding up the rest of the daemon. Intermediate states are skipped, never queued, so the
+pad doesn't fall behind the phone. The PC can still get one older report first, the one already handed to the
+gadget.
 
 The daemon has no `unsafe` code. Its tests run the whole daemon with two simulated phones over real UDP on
-localhost (`board/daemon/tests/two_phones.rs`), including the fail-safe timing.
+localhost (`board/daemon/tests/two_phones.rs`), including the fail-safe timing, and with a browser-like client
+over a real WebSocket (`board/daemon/tests/browser.rs`).
 
 ## Latency
 
@@ -172,5 +174,34 @@ its neighbour. The sticks float: a stick's centre is where the thumb lands. Ever
 
 While the controller is open, the app keeps the screen on, hides the system bars and holds a low-latency Wi-Fi
 lock. Settings: stick sensitivity and dead zone, swap sticks, vibration on press, show the round trip.
+
+## The browser pad
+
+`stonesd` also serves a web page on TCP port 8080 (`web_port` in `config.toml`), built into the binary from
+`board/daemon/web/`.
+A browser can't send UDP, so the page opens a WebSocket to `/ws` on the same port and sends the protocol's
+frames there, one per binary message, byte for byte as over UDP. The daemon hands them to the task that owns the
+slots, and the replies (WELCOME, ERROR, PONG, STATUS) go back on that WebSocket. So a browser is one more phone:
+same slots, PIN, tokens and fail-safe.
+
+What differs from UDP:
+
+- Closing the WebSocket, when the page closes or is hidden, returns the pad to neutral at once, without waiting
+  for the 300 ms fail-safe. The slot stays reserved, and the page keeps its token in the browser's storage, so it
+  resumes the slot within the 120 s reservation.
+- A WebSocket runs over TCP, which delivers in order: after a lost packet on Wi-Fi, newer states wait for its
+  resend, where UDP would go on without it. Not measured yet.
+- The board refuses a WebSocket whose `Origin` header doesn't match the `Host` it was asked for (HTTP 403), so
+  a page from another site, open in a player's browser, can't drive a pad. A client without `Origin` isn't a
+  browser, and is accepted: it could send UDP anyway.
+- It accepts 16 connections at most (a page holds one from the player list on), incoming messages of 64 bytes
+  at most (STATE, the longest frame a phone sends, is 27), and closes a connection silent for 10 s.
+
+The page (`board/daemon/web/index.html` and `pad.mjs`) is a port of the app's controller: the same layout,
+stick maths and timing, with the app's default settings. Each finger is a pointer event. The handler doesn't
+call `preventDefault()`: `touch-action: none` already stops scrolling and zoom, and in Firefox a
+`preventDefault()` on one finger's `pointerdown` dropped the other fingers that landed in the same touch event
+(seen in headless Firefox with simulated touch, not checked on a phone). The tests of `proto.mjs` run from the
+repo root with `node --test board/daemon/web/proto.test.mjs`.
 
 [All steps](../README.md#steps) · Previous: [Install](01-install.md)

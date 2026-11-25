@@ -1,14 +1,16 @@
 # Install
 
 Everything is built on a Linux computer, from a clone of this repo. The board software goes over SSH, the app
-goes on the phones as an APK, and nothing is installed on the PC you play on. During development the build
+goes on Android phones as an APK (iPhones, and Android phones without the app, use the browser pad the board
+serves), and nothing is installed on the PC you play on. During development the build
 computer can also be that PC.
 
 ```mermaid
 flowchart LR
   B["Build computer"] -- "SSH: stonesd, scripts" --> Z["Radxa ZERO 3W"]
-  B -- "APK" --> P["Phones"]
+  B -- "APK" --> P["Android phones"]
   P -- "Wi-Fi" --> Z
+  W["Other phones<br/>browser"] -- "Wi-Fi" --> Z
   Z -- "USB" --> PC["PC you play on"]
 ```
 
@@ -19,7 +21,7 @@ flowchart LR
 | Board | a Radxa ZERO 3W running Armbian, reachable over SSH as root. Use a key login: a deploy runs `ssh` and `scp` several times. Tested on Armbian 26.8.1 trixie with kernel 6.1.115-vendor-rk35xx. The kernel needs USB gadget configfs with HID (`CONFIG_USB_CONFIGFS`, `CONFIG_USB_CONFIGFS_F_HID`) |
 | Board software | Rust stable, `zig` (from your distribution or ziglang.org), the `aarch64-unknown-linux-musl` target and `cargo-zigbuild` (commands below) |
 | The app | the Android SDK with its licenses accepted (`sdkmanager --licenses`; the build fetches the API 37 platform it needs) and a full JDK 21. A Java runtime without `javac` fails with `does not provide the required capabilities: [JAVA_COMPILER]` |
-| Phones | Android 8 or later |
+| Phones | Android 8 or later for the app, a browser for the [browser pad](#the-browser-pad) |
 
 ```sh
 rustup target add aarch64-unknown-linux-musl
@@ -90,7 +92,7 @@ restarts the daemon. Rerun it after changing the code or the scripts. It keeps a
 
 | Installed | What it is |
 |---|---|
-| `/usr/local/bin/stonesd` | the daemon, run by systemd as the `sending-stones` user |
+| `/usr/local/bin/stonesd` | the daemon, run by systemd as the `sending-stones` user. It also serves the browser pad on TCP port 8080 |
 | `/usr/local/lib/sending-stones/` | `setup.sh` (builds the USB gadget), `join-wifi.sh` |
 | `/usr/local/share/sending-stones/pad_descriptor.bin` | the HID descriptor, written by `install.sh` with `stonesd --write-descriptor` |
 | `/etc/sending-stones/config.toml` | settings, all listed in `board/scripts/config.example.toml` |
@@ -171,6 +173,29 @@ The prebuilt APK and your own build are signed with different keys, so Android r
 other: uninstall the app first. A release build needs your own signing key: `phone/keystore.properties` with `storeFile`, `storePassword`,
 `keyAlias` and `keyPassword` (git ignores it), then `./gradlew assembleRelease`.
 
+## The browser pad
+
+A phone without the app plays from its browser: open `http://<board-address>:8080`, with the same address as
+for SSH (`join-wifi.sh` prints it, and so does `hostname -I` on the board). The page lists the players like the
+app and asks for the PIN when the board has one. Picking a player opens the pad, and the page asks the browser
+for full screen and landscape. Tested so far in desktop Firefox only (see the README's Status).
+
+![The browser pad, A held](img/browser-pad.png)
+
+The layout is the app's. Below the top row, each half of the screen is a stick, centred where the thumb lands.
+The page has no settings: sticks use the app's default dead zone and sensitivity.
+
+- Leave at the top, or the browser's Back, frees the player at once.
+- Closing the tab doesn't: like a dropped phone, the player stays held for 2 minutes. The page remembers its
+  player in the browser's storage, so a reload within that time gets it back.
+- When the page is hidden (another app, or the screen locks), it releases its buttons, and gets the same player
+  back when shown again.
+- The page can't keep the screen on: browsers allow that over HTTPS only, and the board serves plain HTTP.
+  Raise the phone's screen timeout if it locks during play.
+
+To change the port, add `web_port = <port>` at the top of `config.toml`; `web_port = 0` turns the page off. Then
+`systemctl restart sending-stones`.
+
 ## First test
 
 1. Plug the board's OTG port, the USB-C port on the right, into the PC. The board boots and starts both
@@ -184,6 +209,8 @@ other: uninstall the app first. A release build needs your own signing key: `pho
    Inputs" for one of them and press buttons on the phone: each one shows up under its own name.
 6. Hold a stick and lock the phone. The pad returns to neutral.
 
+The browser pad is tested the same way: open the page instead of the app at step 3.
+
 Windows is not tested yet. Turn SSH over USB off before plugging into Windows.
 
 ## If something is off
@@ -192,6 +219,7 @@ Windows is not tested yet. Turn SSH over USB off before plugging into Windows.
 |---|---|
 | The app doesn't list the board | Same Wi-Fi, not a guest network? `journalctl -u sending-stones -n 20` on the board should show `advertising over mDNS`. If it does, the network blocks mDNS: type the address |
 | The controller shows "no reply" | Is the board still on the Wi-Fi? Its address may have changed (DHCP): go back and pick it again |
+| The browser pad doesn't load | `http://`, not `https://`, and port 8080 (or your `web_port`)? `journalctl -u sending-stones -n 20` on the board should show `browser pad listening` |
 | "Every slot is held" | A dropped phone frees its slot after 2 minutes. The same phone gets its own slot back at once, marked "yours" |
 | Steam doesn't list the pads | Is the cable in the OTG port? On Linux, `cat /proc/bus/input/devices` should list four "Sending Stones Pad" devices |
 | `setup.sh`: `/sys/class/udc is empty` | [OTG port in host mode](#otg-port-in-host-mode) |
