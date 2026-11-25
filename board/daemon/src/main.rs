@@ -14,6 +14,9 @@ struct Args {
     mock: bool,
     #[arg(long)]
     port: Option<u16>,
+    /// TCP port of the browser pad page; 0 turns it off
+    #[arg(long)]
+    web_port: Option<u16>,
     #[arg(long)]
     no_mdns: bool,
     /// Write the pad's HID report descriptor to FILE and exit (install.sh does this)
@@ -39,6 +42,9 @@ async fn main() -> Result<()> {
     config.mdns &= !args.no_mdns;
     if let Some(port) = args.port {
         config.port = port;
+    }
+    if let Some(port) = args.web_port {
+        config.web_port = port;
     }
     stonesd::run(config, shutdown_signal()).await
 }

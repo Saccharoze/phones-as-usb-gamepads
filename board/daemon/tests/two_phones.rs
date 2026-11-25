@@ -27,7 +27,7 @@ impl Daemon {
         let (stop, stopped) = oneshot::channel();
         let sinks = pads.clone();
         let task = tokio::spawn(async move {
-            stonesd::serve(&config, socket, sinks, async { let _ = stopped.await; }).await;
+            stonesd::serve(&config, socket, None, sinks, async { let _ = stopped.await; }).await;
         });
         Daemon { addr, pads, stop: Some(stop), task }
     }

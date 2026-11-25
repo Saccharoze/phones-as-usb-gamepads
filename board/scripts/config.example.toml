@@ -3,6 +3,9 @@
 port = 40400
 pad_count = 4
 
+# TCP port of the browser pad page (http://<board>:8080). 0 turns it off.
+web_port = 8080
+
 # 4-digit PIN asked for every new claim and takeover. Set one when other
 # people share the Wi-Fi. Leave unset for no PIN.
 # pin = 1234

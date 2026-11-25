@@ -1,6 +1,6 @@
 [package]
 name = "stonesd"
-description = "Sending Stones board daemon: phones in over UDP, HID reports out"
+description = "Sending Stones board daemon: phones in over UDP or WebSocket, HID reports out"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,7 +8,9 @@ license.workspace = true
 [dependencies]
 proto = { path = "../proto" }
 anyhow = "1"
+axum = { version = "0.8", default-features = false, features = ["ws", "http1", "tokio"] }
 clap = { version = "4", features = ["derive"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 mdns-sd = "0.13"
 rand = "0.9"
 serde = { version = "1", features = ["derive"] }
@@ -24,6 +26,7 @@ libc = "0.2"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }
+tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect"] }
 
 [lints]
 workspace = true

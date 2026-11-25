@@ -1,16 +1,17 @@
 //! Who owns which pad. Pure logic: time comes in as an argument so the
 //! rules are testable without sleeping.
 
-use std::net::SocketAddr;
 use std::time::Duration;
 
 use proto::ErrorCode;
 use tokio::time::Instant;
 
+use crate::peer::Peer;
+
 #[derive(Debug, Clone)]
 pub struct Session {
     pub token: u64,
-    pub addr: SocketAddr,
+    pub peer: Peer,
     pub last_seen: Instant,
     /// None right after HELLO, so a resumed phone may restart its counter.
     pub last_seq: Option<u16>,
@@ -53,7 +54,7 @@ impl Slots {
         slot: u8,
         token: u64,
         pin: Option<u16>,
-        addr: SocketAddr,
+        peer: Peer,
         now: Instant,
         new_token: u64,
     ) -> Result<(u64, Claim), ErrorCode> {
@@ -62,7 +63,7 @@ impl Slots {
         let current = self.sessions[index].as_mut();
         if let Some(session) = current {
             if token != 0 && session.token == token {
-                session.addr = addr;
+                session.peer = peer;
                 session.last_seen = now;
                 session.last_seq = None;
                 return Ok((token, Claim::Resumed));
@@ -72,9 +73,9 @@ impl Slots {
         let kind = match self.sessions[index].as_mut() {
             None => Claim::New,
             // A HELLO retried while our WELCOME was in flight comes from the
-            // same address. A new token would refuse that phone its own slot
+            // same peer. A new token would refuse that phone its own slot
             // (no PIN) or take the slot over from itself (PIN).
-            Some(session) if session.addr == addr => {
+            Some(session) if session.peer == peer => {
                 session.last_seen = now;
                 return Ok((session.token, Claim::Repeated));
             }
@@ -83,7 +84,7 @@ impl Slots {
         };
         self.sessions[index] = Some(Session {
             token: new_token,
-            addr,
+            peer,
             last_seen: now,
             last_seq: None,
             rtt_p50_ms: None,
@@ -92,11 +93,11 @@ impl Slots {
         Ok((new_token, kind))
     }
 
-    /// Finds the session for `token`, marks it seen, and follows a new address.
-    pub fn touch(&mut self, token: u64, addr: SocketAddr, now: Instant) -> Option<(usize, &mut Session)> {
+    /// Finds the session for `token`, marks it seen, and follows a new peer.
+    pub fn touch(&mut self, token: u64, peer: Peer, now: Instant) -> Option<(usize, &mut Session)> {
         let (index, session) = self.find_mut(token)?;
         session.last_seen = now;
-        session.addr = addr;
+        session.peer = peer;
         Some((index, session))
     }
 
@@ -147,12 +148,14 @@ impl Slots {
 
 #[cfg(test)]
 mod tests {
+    use std::net::SocketAddr;
+
     use super::*;
 
     const RESERVE: Duration = Duration::from_secs(120);
 
-    fn addr(port: u16) -> SocketAddr {
-        SocketAddr::from(([192, 168, 1, 10], port))
+    fn addr(port: u16) -> Peer {
+        Peer::Udp(SocketAddr::from(([192, 168, 1, 10], port)))
     }
 
     #[test]
@@ -161,7 +164,7 @@ mod tests {
         let mut slots = Slots::new(2, None, RESERVE);
         assert_eq!(slots.claim(1, 0, None, addr(1), now, 77), Ok((77, Claim::New)));
         assert_eq!(slots.claim(1, 77, None, addr(2), now, 99), Ok((77, Claim::Resumed)));
-        assert_eq!(slots.get(0).unwrap().addr, addr(2), "replies follow the new address");
+        assert_eq!(slots.get(0).unwrap().peer, addr(2), "replies follow the new address");
     }
 
     #[test]

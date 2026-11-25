@@ -5,11 +5,14 @@ use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 
 pub const DEFAULT_PATH: &str = "/etc/sending-stones/config.toml";
+pub const DEFAULT_WEB_PORT: u16 = 8080;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub port: u16,
+    /// TCP port of the browser pad page; 0 turns it off.
+    pub web_port: u16,
     pub pad_count: u8,
     /// Optional 4-digit PIN; when set, every new claim and takeover needs it.
     pub pin: Option<u16>,
@@ -25,6 +28,7 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             port: proto::frame::DEFAULT_PORT,
+            web_port: DEFAULT_WEB_PORT,
             pad_count: 4,
             pin: None,
             hid_paths: Vec::new(),
@@ -86,7 +90,7 @@ mod tests {
     #[test]
     fn empty_file_gives_spec_defaults() {
         let c: Config = toml::from_str("").unwrap();
-        assert_eq!((c.port, c.pad_count, c.failsafe_ms, c.reservation_s), (40400, 4, 300, 120));
+        assert_eq!((c.port, c.web_port, c.pad_count, c.failsafe_ms, c.reservation_s), (40400, 8080, 4, 300, 120));
         assert_eq!(c.hid_path(1), PathBuf::from("/dev/hidg1"));
     }
 

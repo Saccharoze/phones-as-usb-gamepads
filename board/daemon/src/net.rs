@@ -1,22 +1,24 @@
-//! The UDP side. One task owns the socket, the slots and the fail-safe
-//! timer, so session state needs no locks; pads are fed through `watch`.
+//! The phone side. One task owns the UDP socket, the browsers' connections,
+//! the slots and the fail-safe timer, so session state needs no locks; pads
+//! are fed through `watch`.
 
 use std::collections::HashMap;
 use std::future::Future;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use proto::frame::{ErrorCode, Frame, Ping, seq_is_newer};
 use proto::PadState;
 use tokio::net::UdpSocket;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 use tokio::time::{Instant, sleep, sleep_until};
 
 use crate::failsafe::{self, Watch};
 use crate::hid::PadUpdate;
 use crate::metrics::PadMetrics;
+use crate::peer::Peer;
 use crate::slots::{Claim, Slots};
+use crate::web::WebEvent;
 
 const ERROR_REPLY_INTERVAL: Duration = Duration::from_secs(1);
 const EXPIRY_CHECK: Duration = Duration::from_secs(1);
@@ -30,20 +32,31 @@ pub struct PadOutput {
 
 pub struct Server {
     socket: UdpSocket,
+    web: mpsc::Receiver<WebEvent>,
+    /// Reply queue of each open WebSocket, by connection id.
+    web_replies: HashMap<u64, mpsc::Sender<Vec<u8>>>,
     slots: Slots,
     pads: Vec<PadOutput>,
     failsafe_window: Duration,
-    last_error_reply: HashMap<SocketAddr, Instant>,
+    last_error_reply: HashMap<Peer, Instant>,
     bad_frames: u64,
     stale_frames: u64,
     started: Instant,
 }
 
 impl Server {
-    pub fn new(socket: UdpSocket, slots: Slots, pads: Vec<PadOutput>, failsafe_window: Duration) -> Server {
+    pub fn new(
+        socket: UdpSocket,
+        web: mpsc::Receiver<WebEvent>,
+        slots: Slots,
+        pads: Vec<PadOutput>,
+        failsafe_window: Duration,
+    ) -> Server {
         assert_eq!(slots.count(), pads.len(), "one pad output per slot");
         Server {
             socket,
+            web,
+            web_replies: HashMap::new(),
             slots,
             pads,
             failsafe_window,
@@ -59,13 +72,19 @@ impl Server {
         tokio::pin!(shutdown);
         let mut buf = [0u8; 1500];
         let mut expiry = tokio::time::interval(EXPIRY_CHECK);
+        // False once the web server is gone (or never started).
+        let mut web_open = true;
         loop {
             let deadline = failsafe::next_deadline(&self.watches(), self.failsafe_window);
             tokio::select! {
                 received = self.socket.recv_from(&mut buf) => match received {
-                    Ok((len, from)) => self.handle(&buf[..len], from).await,
+                    Ok((len, from)) => self.handle(&buf[..len], Peer::Udp(from)).await,
                     // Windows reports ICMP "port unreachable" from an earlier send here.
                     Err(e) => tracing::debug!(error = %e, "recv error ignored"),
+                },
+                event = self.web.recv(), if web_open => match event {
+                    Some(event) => self.on_web(event).await,
+                    None => web_open = false,
                 },
                 _ = sleep_until(deadline.unwrap_or_else(Instant::now)), if deadline.is_some() => {
                     self.fire_failsafe();
@@ -81,7 +100,28 @@ impl Server {
         sleep(Duration::from_millis(100)).await;
     }
 
-    async fn handle(&mut self, bytes: &[u8], from: SocketAddr) {
+    async fn on_web(&mut self, event: WebEvent) {
+        match event {
+            WebEvent::Open { id, replies } => {
+                self.web_replies.insert(id, replies);
+            }
+            WebEvent::Received { peer, bytes } => self.handle(&bytes, peer).await,
+            WebEvent::Closed { id } => {
+                self.web_replies.remove(&id);
+                // The page is gone: release its input now rather than after the
+                // fail-safe window. The slot stays reserved for a resume.
+                for pad in 0..self.pads.len() {
+                    let held = self.slots.get(pad).is_some_and(|s| matches!(s.peer, Peer::Web { id: i, .. } if i == id));
+                    if held && self.current_state(pad) != PadState::NEUTRAL {
+                        tracing::info!(slot = pad + 1, "browser closed: neutral");
+                        self.publish(pad, PadState::NEUTRAL, None);
+                    }
+                }
+            }
+        }
+    }
+
+    async fn handle(&mut self, bytes: &[u8], from: Peer) {
         let now = Instant::now();
         let frame = match Frame::decode(bytes) {
             Ok(frame) => frame,
@@ -121,7 +161,7 @@ impl Server {
         }
     }
 
-    async fn on_hello(&mut self, slot: u8, token: u64, pin: Option<u16>, from: SocketAddr, now: Instant) {
+    async fn on_hello(&mut self, slot: u8, token: u64, pin: Option<u16>, from: Peer, now: Instant) {
         match self.slots.claim(slot, token, pin, from, now, new_token()) {
             Ok((token, claim)) => {
                 tracing::info!(slot, %from, ?claim, "slot claimed");
@@ -137,7 +177,7 @@ impl Server {
         }
     }
 
-    async fn on_state(&mut self, token: u64, seq: u16, state: PadState, from: SocketAddr, now: Instant) {
+    async fn on_state(&mut self, token: u64, seq: u16, state: PadState, from: Peer, now: Instant) {
         match self.accept_sequenced(token, seq, from, now) {
             Accepted::Fresh(pad) => self.publish(pad, state, Some(now)),
             Accepted::Stale => self.stale_frames += 1,
@@ -145,7 +185,7 @@ impl Server {
         }
     }
 
-    async fn on_heartbeat(&mut self, token: u64, seq: u16, from: SocketAddr, now: Instant) {
+    async fn on_heartbeat(&mut self, token: u64, seq: u16, from: Peer, now: Instant) {
         match self.accept_sequenced(token, seq, from, now) {
             Accepted::Fresh(_) => {}
             Accepted::Stale => self.stale_frames += 1,
@@ -153,7 +193,7 @@ impl Server {
         }
     }
 
-    async fn on_ping(&mut self, ping: Ping, from: SocketAddr, now: Instant) {
+    async fn on_ping(&mut self, ping: Ping, from: Peer, now: Instant) {
         if self.slots.touch(ping.token, from, now).is_some() {
             self.send(&Frame::Pong(ping), from).await;
         } else {
@@ -162,7 +202,7 @@ impl Server {
     }
 
     /// STATE and HEARTBEAT share one sequence counter per session.
-    fn accept_sequenced(&mut self, token: u64, seq: u16, from: SocketAddr, now: Instant) -> Accepted {
+    fn accept_sequenced(&mut self, token: u64, seq: u16, from: Peer, now: Instant) -> Accepted {
         let Some((pad, session)) = self.slots.touch(token, from, now) else {
             return Accepted::UnknownToken;
         };
@@ -209,16 +249,16 @@ impl Server {
         self.last_error_reply.retain(|_, at| now.duration_since(*at) < ERROR_REPLY_INTERVAL);
     }
 
-    async fn unknown_token(&mut self, from: SocketAddr, now: Instant) {
+    async fn unknown_token(&mut self, from: Peer, now: Instant) {
         self.rate_limited_error(ErrorCode::UnknownToken, from, now).await;
     }
 
-    async fn bad_frame(&mut self, from: SocketAddr, now: Instant) {
+    async fn bad_frame(&mut self, from: Peer, now: Instant) {
         self.bad_frames += 1;
         self.rate_limited_error(ErrorCode::BadFrame, from, now).await;
     }
 
-    async fn rate_limited_error(&mut self, code: ErrorCode, from: SocketAddr, now: Instant) {
+    async fn rate_limited_error(&mut self, code: ErrorCode, from: Peer, now: Instant) {
         let recent = self
             .last_error_reply
             .get(&from)
@@ -230,9 +270,20 @@ impl Server {
         self.send(&Frame::Error(code), from).await;
     }
 
-    async fn send(&self, frame: &Frame, to: SocketAddr) {
-        if let Err(e) = self.socket.send_to(&frame.encode(), to).await {
-            tracing::debug!(%to, error = %e, "send failed");
+    async fn send(&self, frame: &Frame, to: Peer) {
+        match to {
+            Peer::Udp(addr) => {
+                if let Err(e) = self.socket.send_to(&frame.encode(), addr).await {
+                    tracing::debug!(%to, error = %e, "send failed");
+                }
+            }
+            Peer::Web { id, .. } => {
+                // A full queue means the page isn't reading: the reply is
+                // lost, as a UDP packet could be.
+                if let Some(replies) = self.web_replies.get(&id) {
+                    let _ = replies.try_send(frame.encode());
+                }
+            }
         }
     }
 
@@ -263,7 +314,8 @@ impl Server {
         if let Some(session) = self.slots.get(pad) {
             let silent = now.duration_since(session.last_seen);
             slot["state"] = if silent < self.failsafe_window { "active" } else { "reserved" }.into();
-            slot["phone"] = session.addr.to_string().into();
+            slot["phone"] = session.peer.addr().to_string().into();
+            slot["via"] = session.peer.via().into();
             slot["silent_ms"] = (silent.as_millis() as u64).into();
             slot["rtt_p50_ms"] = session.rtt_p50_ms.into();
             slot["rtt_p95_ms"] = session.rtt_p95_ms.into();
