@@ -26,3 +26,4 @@ Thumbs.db
 # Build output and generated files
 target/
 pad_descriptor.bin
+phone/.kotlin/
