@@ -36,7 +36,8 @@ import io.github.sendingstones.proto.Hat
 private val Background = Color(0xFF121214)
 private val Idle = Color(0xFF3A3A40)
 private val LabelColor = Color(0xFFE8E8EC)
-val PlayerColors = listOf(Color(0xFF4F8EF7), Color(0xFFF2784B))
+/** Player 1 to 4: blue, orange, green, purple. A board with more pads reuses them in turn. */
+val PlayerColors = listOf(Color(0xFF4F8EF7), Color(0xFFF2784B), Color(0xFF3DBE7A), Color(0xFFB57CF2))
 
 /**
  * One Canvas with raw multi-pointer handling: every pointer is bound to the

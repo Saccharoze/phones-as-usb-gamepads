@@ -25,7 +25,7 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             port: proto::frame::DEFAULT_PORT,
-            pad_count: 2,
+            pad_count: 4,
             pin: None,
             hid_paths: Vec::new(),
             mock: false,
@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn empty_file_gives_spec_defaults() {
         let c: Config = toml::from_str("").unwrap();
-        assert_eq!((c.port, c.pad_count, c.failsafe_ms, c.reservation_s), (40400, 2, 300, 120));
+        assert_eq!((c.port, c.pad_count, c.failsafe_ms, c.reservation_s), (40400, 4, 300, 120));
         assert_eq!(c.hid_path(1), PathBuf::from("/dev/hidg1"));
     }
 

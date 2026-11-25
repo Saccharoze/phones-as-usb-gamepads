@@ -5,7 +5,7 @@
 #
 # Environment:
 #   DESCRIPTOR  HID report descriptor (from `stonesd --write-descriptor`)
-#   CONFIG      config.toml; `pad_count = N` sets the pad count (default 2)
+#   CONFIG      config.toml; `pad_count = N` sets the pad count (default 4)
 #   PADS        overrides the pad count
 #   TAKEOVER=1  unbind another gadget that holds the UDC; `down` rebinds it
 #   WITH_ECM=1  also expose a USB Ethernet (CDC ECM) function, so SSH over
@@ -41,7 +41,7 @@ pad_count() {
     elif [[ -r $CONFIG ]] && grep -qE '^\s*pad_count\s*=' "$CONFIG"; then
         grep -E '^\s*pad_count\s*=' "$CONFIG" | tail -1 | tr -dc '0-9'
     else
-        echo 2
+        echo 4
     fi
 }
 
@@ -110,6 +110,11 @@ create_gadget() {
         echo 0 >"$f/protocol"
         echo 0 >"$f/subclass"
         echo $REPORT_LENGTH >"$f/report_length"
+        # The pad has no output report, so it needs no OUT endpoint. The ZERO 3W's controller
+        # has only five, and four pads plus the USB network link would take all of them.
+        if [[ -e $f/no_out_endpoint ]]; then
+            echo 1 >"$f/no_out_endpoint"
+        fi
         cat "$DESCRIPTOR" >"$f/report_desc"
         ln -s "$f" "$G/configs/c.1/"
     done

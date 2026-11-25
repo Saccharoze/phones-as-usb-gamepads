@@ -108,7 +108,7 @@ fun parseAddress(text: String): InetSocketAddress? {
     return runCatching { InetSocketAddress(java.net.InetAddress.getByName(host), port) }.getOrNull()
 }
 
-/** Screen 2: P1 / P2, free or taken, PIN when the board asks for one. */
+/** Screen 2: one button per player, two per row, free or taken; PIN when the board asks for one. */
 @Composable
 fun SlotPickerScreen(board: Board, holds: (slot: Int) -> Boolean, onPick: (slot: Int, pin: Int?) -> Unit, onBack: () -> Unit) {
     var status by remember { mutableStateOf<BoardStatus?>(null) }
@@ -139,26 +139,28 @@ fun SlotPickerScreen(board: Board, holds: (slot: Int) -> Boolean, onPick: (slot:
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    for (slot in s.slots) {
-                        val color = PlayerColors[(slot.slot - 1).mod(PlayerColors.size)]
-                        // This phone's own slot from an earlier run: resuming needs no PIN.
-                        val mine = !slot.free && holds(slot.slot)
-                        Button(
-                            onClick = { onPick(slot.slot, pin.toIntOrNull()) },
-                            enabled = mine || (slot.free && (!s.pinRequired || pin.length == 4)),
-                            colors = ButtonDefaults.buttonColors(containerColor = color),
-                            modifier = Modifier.size(width = 180.dp, height = 96.dp),
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Player ${slot.slot}", style = MaterialTheme.typography.titleLarge)
-                                Text(if (slot.free) "free" else if (mine) "yours" else slot.state)
+                for (row in s.slots.chunked(2)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        for (slot in row) {
+                            val color = PlayerColors[(slot.slot - 1).mod(PlayerColors.size)]
+                            // This phone's own slot from an earlier run: resuming needs no PIN.
+                            val mine = !slot.free && holds(slot.slot)
+                            Button(
+                                onClick = { onPick(slot.slot, pin.toIntOrNull()) },
+                                enabled = mine || (slot.free && (!s.pinRequired || pin.length == 4)),
+                                colors = ButtonDefaults.buttonColors(containerColor = color),
+                                modifier = Modifier.size(width = 160.dp, height = 88.dp),
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Player ${slot.slot}", style = MaterialTheme.typography.titleLarge)
+                                    Text(if (slot.free) "free" else if (mine) "yours" else slot.state)
+                                }
                             }
                         }
                     }
                 }
                 if (s.slots.none { it.free }) {
-                    Text("Both slots are held. A dropped phone frees its slot after 2 minutes.")
+                    Text("Every slot is held. A dropped phone frees its slot after 2 minutes.")
                 }
             }
         }

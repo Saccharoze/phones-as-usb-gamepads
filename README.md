@@ -1,7 +1,7 @@
 # Phones as USB gamepads
 
-Two Android phones become two USB gamepads for a PC. A Radxa ZERO 3W board, plugged into the PC's USB port
-(the same cable powers it), presents itself as two generic HID gamepads, and each phone drives one of them
+Up to four Android phones become USB gamepads for a PC. A Radxa ZERO 3W board, plugged into the PC's USB port
+(the same cable powers it), presents itself as four generic HID gamepads, and each phone drives one of them
 over Wi-Fi.
 
 Phone-as-gamepad apps usually install a virtual driver on the PC. Here the PC only sees ordinary USB hardware,
@@ -15,19 +15,19 @@ The app is called Sending Stones, and the PC lists the pads as "Sending Stones P
 ```mermaid
 flowchart LR
   P1["Phone 1<br/>app"] -- "Wi-Fi, UDP" --> D
-  P2["Phone 2<br/>app"] -- "Wi-Fi, UDP" --> D
+  P2["Phones 2 to 4<br/>app"] -- "Wi-Fi, UDP" --> D
   subgraph B["Radxa ZERO 3W"]
-    D["stonesd daemon"] --> H["USB gadget<br/>two HID gamepads"]
+    D["stonesd daemon"] --> H["USB gadget<br/>four HID gamepads"]
   end
-  H -- "USB" --> PC["PC<br/>sees two gamepads"]
+  H -- "USB" --> PC["PC<br/>sees four gamepads"]
 ```
 
 The board joins your Wi-Fi and the app finds it there over mDNS (the protocol runs on UDP port 40400). Each
-player picks Player 1 or Player 2 in the app, optionally behind a 4-digit PIN set on the board.
+player picks Player 1 to 4 in the app, optionally behind a 4-digit PIN set on the board.
 A phone sends its whole pad state on every change and again every 100 ms, so a lost packet is corrected by the
 next one. A pad whose phone goes silent for 300 ms returns to neutral.
 
-Needs: a Radxa ZERO 3W (other boards: [below](#boards)), two Android 8+ phones, a Wi-Fi network shared by the
+Needs: a Radxa ZERO 3W (other boards: [below](#boards)), one Android 8+ phone per player, a Wi-Fi network shared by the
 board and the phones, and a Linux computer with Rust and SSH access to the board, to build and install the board
 software once. That computer can be the PC you play on; playing itself needs nothing installed. The app is
 `sending-stones-<version>.apk` on the
@@ -36,9 +36,9 @@ SDK.
 
 ## Status
 
-- Tested with a Linux PC as the host: both pads appear, the phone app drives its pad, a silent phone's pad
-  returns to neutral.
-- Steam on that PC lists both pads as controllers and maps every button by itself: its "Test Device Inputs"
+- Tested with a Linux PC as the host: all four pads appear, the phone app drives its pad, a silent phone's pad
+  returns to neutral. Pads 3 and 4 were driven from the PC, standing in for phones.
+- Steam on that PC lists all four pads as controllers and maps every button by itself: its "Test Device Inputs"
   screen shows each phone button under its own name.
 - Not tested yet: a game, Windows.
 
@@ -74,7 +74,7 @@ mode on the USB port and joining the Wi-Fi work differently.
 
 What I want to work on:
 
-1. Play a split-screen co-op game through Steam with both phones, on this Linux PC, then on Windows.
+1. Play a split-screen co-op game through Steam with two to four phones, on this Linux PC, then on Windows.
 2. Measure latency over Wi-Fi, from the phone to the PC. The [measured numbers](docs/02-how-it-works.md#latency)
    stop at the board's USB network link.
 3. Games without Steam Input: Windows games that only read XInput don't see a generic HID gamepad. An Xbox

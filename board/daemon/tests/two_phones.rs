@@ -189,13 +189,15 @@ async fn stale_and_foreign_packets_are_ignored() {
 
 #[tokio::test]
 async fn slot_rules_and_status_over_udp() {
-    let daemon = Daemon::start(Config { mdns: false, pin: Some(4321), ..Config::default() }).await;
+    let config = Config { mdns: false, pin: Some(4321), ..Config::default() };
+    let no_such_slot = config.pad_count + 1;
+    let daemon = Daemon::start(config).await;
     let mut owner = Phone::new(daemon.addr).await;
     let mut intruder = Phone::new(daemon.addr).await;
     assert_eq!(owner.hello(1, None).await, Err(ErrorCode::BadPin));
     owner.hello(1, Some(4321)).await.unwrap();
     assert_eq!(intruder.hello(1, Some(1111)).await, Err(ErrorCode::BadPin));
-    assert_eq!(intruder.hello(3, Some(4321)).await, Err(ErrorCode::NoSuchSlot));
+    assert_eq!(intruder.hello(no_such_slot, Some(4321)).await, Err(ErrorCode::NoSuchSlot));
 
     let status = intruder.status().await;
     let text = status.to_string();

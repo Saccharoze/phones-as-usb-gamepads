@@ -1,7 +1,7 @@
 # How it works
 
 A touch on the phone becomes a pad state. The app sends it over UDP to `stonesd` on the board, which writes it
-as a 13-byte HID report to `/dev/hidg0` or `/dev/hidg1`. The board's USB gadget hands that report to the PC the
+as a 13-byte HID report to its pad's `/dev/hidgN`. The board's USB gadget hands that report to the PC the
 next time the PC polls the pad.
 
 ```mermaid
@@ -23,10 +23,11 @@ sequenceDiagram
 ## The USB gadget
 
 `board/scripts/setup.sh` builds the gadget through configfs, the kernel's file interface for USB gadgets. One
-USB device carries two HID functions, one per pad, each with the same 89-byte report descriptor. Slot 1 drives
-`/dev/hidg0`, slot 2 `/dev/hidg1`. The PC sees
-two gamepads named "Sending Stones Pad" and drives them with its built-in HID driver, so nothing is installed on
-it (checked on Linux). Each pad has a 13-byte interrupt endpoint polled every 1 ms at high speed (`bInterval` 4).
+USB device carries one HID function per pad, four by default (`pad_count` in `config.toml`), each with the same
+89-byte report descriptor. Slot 1 drives `/dev/hidg0`, slot 2 `/dev/hidg1`, and so on. The PC sees four gamepads
+named "Sending Stones Pad" and drives them with its built-in HID driver, so nothing is installed on it (checked on
+Linux). Each pad has a 13-byte interrupt endpoint polled every 1 ms at high speed (`bInterval` 4), and no OUT
+endpoint: the pad has no output report, and the ZERO 3W's USB controller has only five OUT endpoints.
 
 The descriptor lives in one place, `board/proto/src/descriptor.rs`. `install.sh` writes it to a file with
 `stonesd --write-descriptor`, and `setup.sh` gives that file to configfs.
@@ -65,7 +66,7 @@ gaps: each button sits on the bit whose code carries its name, `BTN_A`, `BTN_B`,
 `BTN_TR` (RB), `BTN_SELECT` (View), `BTN_START` (Menu), `BTN_MODE` (Guide), `BTN_THUMBL` (L3) and `BTN_THUMBR`
 (R3). The hat becomes `ABS_HAT0X`/`ABS_HAT0Y`, the sticks `ABS_X`, `ABS_Y`, `ABS_RX`, `ABS_RY` and the triggers
 `ABS_Z`, `ABS_RZ`. Steam reads controllers through SDL, which maps these codes to the right gamepad buttons by
-itself. On the test PC, Steam lists both pads with that mapping, and its "Test Device Inputs" screen shows each
+itself. On the test PC, Steam lists every pad with that mapping, and its "Test Device Inputs" screen shows each
 button pressed on the phone under its own name.
 
 ## The network protocol
@@ -106,7 +107,7 @@ together.
 
 ## Sessions and slots
 
-1. The phone sends HELLO for slot 1 or 2. The board answers WELCOME for that slot with a random 64-bit token,
+1. The phone sends HELLO for a slot, 1 to 4 with four pads. The board answers WELCOME for that slot with a random 64-bit token,
    never 0. The app retries HELLO every 250 ms, up to 10 times. A retry from the same IP address and port gets
    the same token back.
 2. The phone sends its whole pad state in a STATE on every change, at most once per display frame, and again
@@ -119,7 +120,7 @@ together.
    to neutral. Locking the phone sends a neutral state right away, then the phone goes silent.
 5. The slot stays reserved for 120 s after the last frame. A phone that comes back within that time sends its
    token and gets the same slot. The app saves the token, so this also works after the app restarts, and the
-   app's Player 1 / Player 2 screen marks that slot "yours".
+   app's player screen marks that slot "yours".
 6. The PIN, when `config.toml` sets one, is needed for every new claim, free slot or not, but not to resume
    with a token. Without a PIN, a reserved slot refuses other phones (ERROR 1). With a PIN, a phone that types it
    takes the slot over. The previous phone gets ERROR 5 on its next frame and claims the slot again with the PIN,
@@ -158,7 +159,7 @@ link. The Wi-Fi part, from the phone, isn't measured yet.
 ## A Linux PC only polls an open pad
 
 On Linux, `usbhid` polls a pad's endpoint only while something has its input device open. With nothing reading,
-the board's write waits, and `stonesd` keeps only the newest state for when polling starts. Steam keeps both pads
+the board's write waits, and `stonesd` keeps only the newest state for when polling starts. Steam keeps every pad
 open while it runs (seen on the test PC), and so does a game that reads them. Windows' HID driver is expected to
 poll all the time (not tested yet).
 

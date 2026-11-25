@@ -105,6 +105,10 @@ A PIN makes a phone type 4 digits before it takes a player slot, free or held by
 other people share the Wi-Fi: add `pin = 1234` (your own digits, no leading zero: 0042 is `pin = 42`) at the
 top of `config.toml`, then `systemctl restart sending-stones`.
 
+The board shows the PC four pads. For fewer, set `pad_count` in `config.toml` (for example `pad_count = 2`),
+then `systemctl restart sending-stones-gadget sending-stones`. Restarting the gadget drops SSH over USB for a few
+seconds.
+
 Logs: `cargo xtask logs`, with the same `STONES_SSH`.
 
 ## SSH over USB, for development
@@ -176,7 +180,7 @@ other: uninstall the app first. A release build needs your own signing key: `pho
 3. Open Sending Stones on a phone. The board shows up as "Sending Stones on <board hostname>"; tap it. If it
    doesn't, type its address under "Or type its address".
 4. Tap Player 1. The controller opens full screen, in landscape.
-5. In Steam, open Settings, then Controller. Both pads are listed as "Sending Stones Pad". Open "Test Device
+5. In Steam, open Settings, then Controller. All four pads are listed as "Sending Stones Pad". Open "Test Device
    Inputs" for one of them and press buttons on the phone: each one shows up under its own name.
 6. Hold a stick and lock the phone. The pad returns to neutral.
 
@@ -188,8 +192,8 @@ Windows is not tested yet. Turn SSH over USB off before plugging into Windows.
 |---|---|
 | The app doesn't list the board | Same Wi-Fi, not a guest network? `journalctl -u sending-stones -n 20` on the board should show `advertising over mDNS`. If it does, the network blocks mDNS: type the address |
 | The controller shows "no reply" | Is the board still on the Wi-Fi? Its address may have changed (DHCP): go back and pick it again |
-| "Both slots are held" | A dropped phone frees its slot after 2 minutes. The same phone gets its own slot back at once, marked "yours" |
-| Steam doesn't list the pads | Is the cable in the OTG port? On Linux, `cat /proc/bus/input/devices` should list two "Sending Stones Pad" devices |
+| "Every slot is held" | A dropped phone frees its slot after 2 minutes. The same phone gets its own slot back at once, marked "yours" |
+| Steam doesn't list the pads | Is the cable in the OTG port? On Linux, `cat /proc/bus/input/devices` should list four "Sending Stones Pad" devices |
 | `setup.sh`: `/sys/class/udc is empty` | [OTG port in host mode](#otg-port-in-host-mode) |
 | Anything else | `cargo xtask logs` |
 
