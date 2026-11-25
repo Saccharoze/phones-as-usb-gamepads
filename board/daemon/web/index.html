@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#121214">
+<title>Sending Stones</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #121214; color: #e8e8ec; font-family: system-ui, sans-serif; }
+  body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  #picker { max-width: 360px; padding: 24px 16px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  h1 { margin: 0; font-size: 24px; font-weight: 500; }
+  #message:empty { display: none; }
+  #pin-row { display: flex; align-items: center; gap: 12px; }
+  #pin { width: 6em; padding: 8px; font-size: 20px; background: #1e1e22; color: inherit; border: 1px solid #3a3a40; border-radius: 6px; }
+  #slots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .slot { height: 88px; border: 0; border-radius: 24px; color: #fff; font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .slot b { font-size: 20px; font-weight: 500; }
+  .slot:disabled { opacity: 0.35; }
+  #pad { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #leave { position: fixed; top: 2px; padding: 3px 10px; font: 12px system-ui, sans-serif; color: #e8e8ec; background: transparent; border: 1px solid #3a3a40; border-radius: 10px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main id="picker">
+  <h1>Sending Stones</h1>
+  <p id="message">Asking the board…</p>
+  <label id="pin-row" hidden>PIN <input id="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+  <div id="slots"></div>
+  <p id="held" hidden>Every slot is held. A dropped phone frees its slot after 2 minutes.</p>
+</main>
+<canvas id="pad" hidden></canvas>
+<button id="leave" hidden>Leave</button>
+<script type="module" src="pad.mjs"></script>
+</body>
+</html>

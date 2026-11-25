@@ -9,6 +9,7 @@ use proto::frame::{ErrorCode, Frame};
 use proto::{Button, PadState, report};
 use stonesd::config::Config;
 use stonesd::hid::MockSink;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::oneshot;
 use tokio::time::{Instant, sleep, timeout};
@@ -202,5 +203,25 @@ async fn an_oversized_message_closes_the_connection() {
     browser.ws.send(Message::Binary(vec![0u8; 1000].into())).await.unwrap();
     let end = timeout(Duration::from_secs(1), browser.ws.next()).await.expect("closed within 1 s");
     assert!(matches!(end, None | Some(Err(_)) | Some(Ok(Message::Close(_)))), "got {end:?}");
+    daemon.stop().await;
+}
+
+#[tokio::test]
+async fn the_board_serves_the_page() {
+    let daemon = Daemon::start().await;
+    for (path, content_type, needle) in [
+        ("/", "text/html", "pad.mjs"),
+        ("/pad.mjs", "text/javascript", "./proto.mjs"),
+        ("/proto.mjs", "text/javascript", "export function decode"),
+    ] {
+        let mut http = TcpStream::connect(daemon.web).await.unwrap();
+        let request = format!("GET {path} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n", daemon.web);
+        http.write_all(request.as_bytes()).await.unwrap();
+        let mut response = String::new();
+        http.read_to_string(&mut response).await.unwrap();
+        assert!(response.starts_with("HTTP/1.1 200"), "{path}: {}", response.lines().next().unwrap_or(""));
+        assert!(response.contains(&format!("content-type: {content_type}")), "{path}");
+        assert!(response.contains(needle), "{path}");
+    }
     daemon.stop().await;
 }

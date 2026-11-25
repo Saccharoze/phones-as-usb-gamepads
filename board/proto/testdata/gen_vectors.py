@@ -76,7 +76,7 @@ invalid = [
 ]
 
 out = dict(
-    about="Golden vectors for the Sending Stones protocol. Tokens are 16 hex digits (u64 does not fit a JSON double). Hex is lowercase, no separators. Checked by proto (Rust) and the Android tests (Kotlin).",
+    about="Golden vectors for the Sending Stones protocol. Tokens are 16 hex digits (u64 does not fit a JSON double). Hex is lowercase, no separators. Checked by proto (Rust), the Android tests (Kotlin) and the browser pad (board/daemon/web/proto.test.mjs).",
     version=1,
     reports=[dict(name=n, state=s, hex=report(s).hex()) for n, s in reports],
     frames=frames,

@@ -1,4 +1,5 @@
-//! The browser side. A WebSocket carries the same frames as UDP, one frame
+//! The browser side: serves the pad page (`web/`, built into the binary) and
+//! its WebSocket. The WebSocket carries the same frames as UDP, one frame
 //! per binary message, byte for byte. Each connection forwards its frames to
 //! the task that owns the slots, so a browser is one more phone: same slots,
 //! PIN, tokens and fail-safe.
@@ -31,6 +32,10 @@ const MAX_MESSAGE: usize = 64;
 const IDLE_TIMEOUT: Duration = Duration::from_secs(10);
 const REPLY_QUEUE: usize = 16;
 
+const PAGE: &str = include_str!("../web/index.html");
+const PAD_SCRIPT: &str = include_str!("../web/pad.mjs");
+const PROTO_SCRIPT: &str = include_str!("../web/proto.mjs");
+
 /// What the connections tell the task that owns the slots.
 #[derive(Debug)]
 pub enum WebEvent {
@@ -58,11 +63,21 @@ pub async fn serve(listener: TcpListener, events: mpsc::Sender<WebEvent>) {
         connections: Arc::new(Semaphore::new(MAX_CONNECTIONS)),
         next_id: Arc::new(AtomicU64::new(1)),
     };
-    let router = Router::new().route("/ws", get(upgrade)).with_state(app);
+    let router = Router::new()
+        .route("/", get(|| async { file("text/html; charset=utf-8", PAGE) }))
+        .route("/pad.mjs", get(|| async { file("text/javascript", PAD_SCRIPT) }))
+        .route("/proto.mjs", get(|| async { file("text/javascript", PROTO_SCRIPT) }))
+        .route("/ws", get(upgrade))
+        .with_state(app);
     let service = router.into_make_service_with_connect_info::<SocketAddr>();
     if let Err(e) = axum::serve(listener, service).await {
         tracing::warn!(error = %e, "web server stopped");
     }
+}
+
+/// `no-cache`: after an update, the next load gets the new page.
+fn file(content_type: &'static str, body: &'static str) -> Response {
+    ([(header::CONTENT_TYPE, content_type), (header::CACHE_CONTROL, "no-cache")], body).into_response()
 }
 
 async fn upgrade(
